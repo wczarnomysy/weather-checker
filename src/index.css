@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  background: linear-gradient(80deg, #0a1a43, #2e5189);
+  color: #f8fafc;
+  padding: 1rem 0;
+}
+
+@media (min-width: 640px) {
+  body {
+    padding: 2rem 0;
+  }
+}
+
+.glass-panel {
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(21, 58, 153, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.fade-in-fast {
+  animation: fadeIn 0.2s ease-out;
+}
