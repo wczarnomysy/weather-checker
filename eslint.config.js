@@ -19,6 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
+    },
   },
   {
     files: ['**/*.test.{ts,tsx}'],

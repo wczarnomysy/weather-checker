@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { SEARCH_TEXT, ERROR_TEXT, AUTOCOMPLETE_CONFIG } from '../constants/text';
+import { useState, useEffect, useRef } from 'react';
+import { SEARCH_TEXT, VALIDATION_TEXT, AUTOCOMPLETE_CONFIG } from '../constants/text';
 import { getGeocodingUrl } from '../config/api';
 import type { GeocodingResult, GeocodingApiResponse } from '../api/weather';
 
@@ -8,11 +8,12 @@ interface SearchBarProps {
   onInputChange?: () => void;
   isLoading?: boolean;
   hasWeatherData?: boolean;
+  searchError?: Error | null;
 }
 
-export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData }: SearchBarProps) {
+export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData, searchError }: SearchBarProps) {
   const [query, setQuery] = useState('');
-  const [error, setError] = useState('');
+  const [validationMessage, setValidationMessage] = useState('');
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -133,7 +134,7 @@ export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData }
     setQuery(suggestion.name);
     setShowSuggestions(false);
     setSuggestions([]);
-    setError('');
+    setValidationMessage('');
     onSearch(suggestion.name);
   };
 
@@ -168,19 +169,19 @@ export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData }
     
     // Check if query contains numbers
     if (/\d/.test(trimmedQuery)) {
-      setError(ERROR_TEXT.cityWithNumbers);
+      setValidationMessage(VALIDATION_TEXT.cityWithNumbers);
       return;
     }
     
-    setError('');
+    setValidationMessage('');
     setShowSuggestions(false);
     onSearch(trimmedQuery);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
-    if (error) {
-      setError('');
+    if (validationMessage) {
+      setValidationMessage('');
     }
     // Notify parent that input is changing (to clear previous results)
     if (onInputChange) {
@@ -214,7 +215,7 @@ export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData }
         </form>
 
         {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {!searchError && showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 mt-2 glass-panel max-h-60 overflow-y-auto z-10 fade-in">
             {suggestions.map((suggestion, index) => (
               <div
@@ -237,24 +238,24 @@ export function SearchBar({ onSearch, onInputChange, isLoading, hasWeatherData }
         )}
 
         {/* Loading indicator for suggestions */}
-        {isLoadingSuggestions && query.trim().length >= AUTOCOMPLETE_CONFIG.MIN_QUERY_LENGTH && (
+        {!searchError &&isLoadingSuggestions && query.trim().length >= AUTOCOMPLETE_CONFIG.MIN_QUERY_LENGTH && (
           <div className="absolute top-full left-0 right-0 mt-2 glass-panel px-4 py-3 text-slate-400 text-sm text-center fade-in-fast">
             {SEARCH_TEXT.loadingSuggestions}
           </div>
         )}
 
         {/* No results message */}
-        {noResults && !isLoadingSuggestions && query.trim().length >= AUTOCOMPLETE_CONFIG.MIN_QUERY_LENGTH && (
+        {!searchError && noResults && !isLoadingSuggestions && query.trim().length >= AUTOCOMPLETE_CONFIG.MIN_QUERY_LENGTH && (
           <div className="absolute top-full left-0 right-0 mt-2 glass-panel px-4 py-3 text-slate-400 text-sm text-center fade-in">
             {SEARCH_TEXT.noSuggestionsFound}
           </div>
         )}
       </div>
       
-      {error && (
+      {validationMessage  && (
         <div className="text-center mb-6 fade-in">
           <div className="glass-panel inline-block px-4 py-2 md:px-6 md:py-3 text-slate-300 select-none text-sm md:text-base">
-            {error}
+            {validationMessage}
           </div>
         </div>
       )}

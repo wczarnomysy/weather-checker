@@ -13,10 +13,13 @@ export const SEARCH_TEXT = {
 
 export const ERROR_TEXT = {
   generic: 'An error occurred.',
-  cityWithNumbers: 'City names cannot contain numbers.',
   cityNotFound: 'City not found. Please check the spelling and try again.',
   networkError: 'Unable to connect. Please try again.',
   apiError: 'Cannot reach weather service. Please try again.',
+} as const;
+
+export const VALIDATION_TEXT = {
+  cityWithNumbers: 'City names cannot contain numbers.',
 } as const;
 
 export const WEATHER_TEXT = {

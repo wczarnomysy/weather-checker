@@ -53,6 +53,7 @@ function App() {
         onInputChange={() => setCity('')}
         isLoading={isLoading}
         hasWeatherData={!!weather}
+        searchError={error}
       />
 
       {isLoading && <WeatherCardSkeleton />}
