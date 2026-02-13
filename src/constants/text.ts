@@ -8,7 +8,7 @@ export const SEARCH_TEXT = {
   placeholder: 'London, Tokyo, New York...',
   buttonText: 'Search',
   loadingSuggestions: 'Loading suggestions...',
-  noSuggestionsFound: 'No suggestions found. Type the full city name and press Enter or click the Search button.',
+  noSuggestionsFound: 'No suggestions found. Try the English name (e.g., "Rome" instead of "Roma") or type the full city name and press Enter.',
 } as const;
 
 export const ERROR_TEXT = {
@@ -33,4 +33,12 @@ export const AUTOCOMPLETE_CONFIG = {
   MIN_POPULATION: 10000,
   MAX_SUGGESTIONS: 3,
   DEBOUNCE_DELAY_MS: 300,
+} as const;
+
+/**
+ * City population thresholds for intelligent city selection
+ */
+export const CITY_POPULATION_THRESHOLDS = {
+  MAJOR_CITY: 100000,      // Cities with 100K+ population are considered major
+  MIN_VALID: 1000,         // Minimum population to avoid tiny villages
 } as const;

@@ -1,41 +1,41 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getCoordinates, getWeather } from './api/weather'
+import { useState, useCallback } from 'react'
+import { type GeocodingResult } from './api/weather'
 import { SearchBar } from './components/SearchBar'
 import { WeatherCard } from './components/WeatherCard'
 import { WeatherCardSkeleton } from './components/WeatherCardSkeleton'
 import { APP_TEXT } from './constants/text'
 import { getErrorMessage } from './utils/errors'
+import { useWeatherFlow } from './hooks/useWeatherQueries'
 
 function App() {
   const [city, setCity] = useState('')
+  const [selectedSuggestion, setSelectedSuggestion] = useState<GeocodingResult | null>(null)
 
-  // First query to get coordinates
-  const { data: geoData, isLoading: isGeoLoading, error: geoError } = useQuery({
-    queryKey: ['geo', city],
-    queryFn: () => getCoordinates(city),
-    enabled: !!city,
-    retry: false,
-    networkMode: 'always',
-    staleTime: 5 * 60 * 1000, // Fresh for 5 minutes
-    gcTime: 10 * 60 * 1000,   // Keep in cache for 10 minutes
-  })
+  // Use the custom hook for all weather-related queries
+  const {
+    isLoading,
+    error,
+    hasWeatherData,
+    geoData,
+    weatherData
+  } = useWeatherFlow({ city, selectedSuggestion });
 
-  // Second query to get weather (dependent on first)
-  const { data: weather, isLoading: isWeatherLoading, error: weatherError } = useQuery({
-    queryKey: ['weather', geoData?.latitude, geoData?.longitude],
-    queryFn: () => getWeather(geoData!.latitude, geoData!.longitude),
-    enabled: !!geoData,
-    retry: false,
-    networkMode: 'always',
-    staleTime: 5 * 60 * 1000, // Fresh for 5 minutes
-    gcTime: 10 * 60 * 1000,   // Keep in cache for 10 minutes
-  })
+  // Memoized event handlers to prevent unnecessary re-renders
+  const handleSearch = useCallback((searchCity: string) => {
+    setCity(searchCity);
+    setSelectedSuggestion(null);
+  }, []);
 
-  // Determine overall loading/error state
-  const isLoading = isGeoLoading || isWeatherLoading
-  // Simplistic error handling
-  const error = geoError || weatherError
+  const handleSuggestionSelect = useCallback((suggestion: GeocodingResult) => {
+    setSelectedSuggestion(suggestion);
+    setCity(''); // Clear city to prevent duplicate queries
+  }, []);
+
+  const handleInputChange = useCallback(() => {
+    // Clear both city and suggestion state when input changes
+    setCity('');
+    setSelectedSuggestion(null);
+  }, []);
 
   return (
     <div className="w-full max-w-3xl px-4 sm:px-6 lg:px-8">
@@ -49,16 +49,17 @@ function App() {
       <p className="text-center text-slate-300 mb-3 text-sm sm:text-base">{APP_TEXT.searchInstruction}</p>
 
       <SearchBar 
-        onSearch={setCity} 
-        onInputChange={() => setCity('')}
+        onSearch={handleSearch}
+        onSuggestionSelect={handleSuggestionSelect}
+        onInputChange={handleInputChange}
         isLoading={isLoading}
-        hasWeatherData={!!weather}
+        hasWeatherData={hasWeatherData}
         searchError={error}
       />
 
       {isLoading && <WeatherCardSkeleton />}
 
-      {error && !isLoading && !weather && (
+      {error && !isLoading && !weatherData && (
         <div className="text-center mb-6 fade-in">
             <div className="text-red-400 bg-red-400/10 px-4 py-2 sm:px-4 sm:py-3 rounded-lg inline-block text-sm sm:text-base">
                 {getErrorMessage(error)}
@@ -66,15 +67,15 @@ function App() {
         </div>
       )}
 
-      {weather && geoData && !error && (
+      {weatherData && geoData && !error && (
         <WeatherCard
-          temperature={weather.temperature}
-          windSpeed={weather.windSpeed}
-          weatherCode={weather.weatherCode}
+          temperature={weatherData.temperature}
+          windSpeed={weatherData.windSpeed}
+          weatherCode={weatherData.weatherCode}
           city={geoData.name}
           country={geoData.country}
-          humidity={weather.humidity}
-          feelsLike={weather.feelsLike}
+          humidity={weatherData.humidity}
+          feelsLike={weatherData.feelsLike}
         />
       )}
     </div>

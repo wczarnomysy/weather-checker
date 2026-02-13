@@ -1,7 +1,24 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import { SearchBar } from './SearchBar';
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const testQueryClient = createTestQueryClient();
+  return render(
+    React.createElement(QueryClientProvider, { client: testQueryClient }, component)
+  );
+};
 
 describe('SearchBar', () => {
   const mockOnSearch = jest.fn();
@@ -12,28 +29,28 @@ describe('SearchBar', () => {
 
   describe('Rendering', () => {
     it('should render input field with correct placeholder', () => {
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       expect(input).toBeTruthy();
     });
 
     it('should render search button', () => {
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const button = screen.getByRole('button', { name: 'Search' });
       expect(button).toBeTruthy();
     });
 
     it('should disable button when input is empty', () => {
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const button = screen.getByRole('button', { name: 'Search' });
       expect(button).toHaveProperty('disabled', true);
     });
 
     it('should disable input and button when isLoading is true', () => {
-      render(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       const button = screen.getByRole('button', { name: 'Search' });
@@ -46,7 +63,7 @@ describe('SearchBar', () => {
   describe('Form Submission', () => {
     it('should call onSearch with trimmed city name on submit', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       const button = screen.getByRole('button', { name: 'Search' });
@@ -60,7 +77,7 @@ describe('SearchBar', () => {
 
     it('should trim whitespace before submitting', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, '  Paris  ');
@@ -71,7 +88,7 @@ describe('SearchBar', () => {
 
     it('should not submit when query is empty', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const button = screen.getByRole('button', { name: 'Search' });
       await user.click(button);
@@ -81,7 +98,7 @@ describe('SearchBar', () => {
 
     it('should not submit when query contains only whitespace', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, '   ');
@@ -94,32 +111,32 @@ describe('SearchBar', () => {
   describe('Validation', () => {
     it('should show error when city name contains numbers', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'City123');
       await user.keyboard('{Enter}');
       
-      expect(screen.getByText('City names cannot contain numbers.')).toBeTruthy();
+      expect(screen.getByText('Please enter a valid city name without numbers')).toBeTruthy();
       expect(mockOnSearch).not.toHaveBeenCalled();
     });
 
     it('should clear error message when user starts typing', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       
       // Trigger error
       await user.type(input, 'City123');
       await user.keyboard('{Enter}');
-      expect(screen.getByText('City names cannot contain numbers.')).toBeTruthy();
+      expect(screen.getByText('Please enter a valid city name without numbers')).toBeTruthy();
       
       // Start typing again
       await user.clear(input);
       await user.type(input, 'L');
       
-      expect(screen.queryByText('City names cannot contain numbers.')).toBeNull();
+      expect(screen.queryByText('Please enter a valid city name without numbers')).toBeNull();
     });
   });
 
@@ -127,7 +144,7 @@ describe('SearchBar', () => {
     it('should call onInputChange when user types', async () => {
       const user = userEvent.setup();
       const mockOnInputChange = jest.fn();
-      render(<SearchBar onSearch={mockOnSearch} onInputChange={mockOnInputChange} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} onInputChange={mockOnInputChange} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'L');
@@ -137,7 +154,7 @@ describe('SearchBar', () => {
 
     it('should not call onInputChange when callback is not provided', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       
@@ -150,7 +167,7 @@ describe('SearchBar', () => {
   describe('Button State', () => {
     it('should enable button when input has value', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       const button = screen.getByRole('button', { name: 'Search' });
@@ -164,7 +181,7 @@ describe('SearchBar', () => {
 
     it('should keep button disabled when loading', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       const button = screen.getByRole('button', { name: 'Search' });
@@ -190,7 +207,7 @@ describe('SearchBar', () => {
       global.fetch = mockFetch as any;
       
       const user = userEvent.setup({ delay: null });
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'L');
@@ -205,7 +222,7 @@ describe('SearchBar', () => {
       global.fetch = mockFetch as any;
       
       const user = userEvent.setup({ delay: null });
-      render(<SearchBar onSearch={mockOnSearch} hasWeatherData={true} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} hasWeatherData={true} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'London');
@@ -220,7 +237,7 @@ describe('SearchBar', () => {
       global.fetch = mockFetch as any;
       
       const user = userEvent.setup({ delay: null });
-      render(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} isLoading={true} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'London');
@@ -235,7 +252,7 @@ describe('SearchBar', () => {
       global.fetch = mockFetch as any;
       
       const user = userEvent.setup({ delay: null });
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'City123');
@@ -249,7 +266,7 @@ describe('SearchBar', () => {
   describe('Keyboard Navigation', () => {
     it('should submit form when Enter is pressed in input', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'Tokyo{Enter}');
@@ -259,9 +276,9 @@ describe('SearchBar', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle very long city names', async () => {
+    it('should reject very long city names', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const longCityName = 'A'.repeat(100);
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
@@ -269,29 +286,35 @@ describe('SearchBar', () => {
       await user.type(input, longCityName);
       await user.keyboard('{Enter}');
       
-      expect(mockOnSearch).toHaveBeenCalledWith(longCityName);
+      // Should show validation error for too long
+      expect(screen.getByText('City name is too long')).toBeTruthy();
+      expect(mockOnSearch).not.toHaveBeenCalled();
     });
 
-    it('should handle special characters in city names', async () => {
+    it('should reject special unicode characters in city names', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, "Saint-Jean-d'Angély");
       await user.keyboard('{Enter}');
       
-      expect(mockOnSearch).toHaveBeenCalledWith("Saint-Jean-d'Angély");
+      // \u00e9 (é) is not in [a-zA-Z\s\-'], so validation should reject it
+      expect(screen.getByText('Please enter a valid city name with only letters, spaces, hyphens, and apostrophes')).toBeTruthy();
+      expect(mockOnSearch).not.toHaveBeenCalled();
     });
 
-    it('should handle unicode characters', async () => {
+    it('should reject unicode characters', async () => {
       const user = userEvent.setup();
-      render(<SearchBar onSearch={mockOnSearch} />);
+      renderWithQueryClient(<SearchBar onSearch={mockOnSearch} />);
       
       const input = screen.getByPlaceholderText('London, Tokyo, New York...');
       await user.type(input, 'Москва'); // Moscow in Russian
       await user.keyboard('{Enter}');
       
-      expect(mockOnSearch).toHaveBeenCalledWith('Москва');
+      // Should show validation error - only Latin characters allowed
+      expect(screen.getByText('Please enter a valid city name with only letters, spaces, hyphens, and apostrophes')).toBeTruthy();
+      expect(mockOnSearch).not.toHaveBeenCalled();
     });
   });
 });

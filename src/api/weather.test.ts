@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, jest } from '@jest/globals';
-import { getCoordinates, getWeather, getWeatherDescription } from './weather';
+import { getCoordinates, getWeather, getWeatherDescription, getCitySuggestions } from './weather';
 import { NetworkError, CityNotFoundError, ApiError } from '../utils/errors';
 
 // Mock the config module
@@ -15,6 +15,93 @@ describe('weather API', () => {
   afterEach(() => {
     // Restore fetch after each test
     global.fetch = originalFetch;
+  });
+
+  describe('getCitySuggestions', () => {
+    it('should return empty array for empty query', async () => {
+      const result = await getCitySuggestions('');
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for short query', async () => {
+      const result = await getCitySuggestions('P');
+      expect(result).toEqual([]);
+    });
+
+    it('should fetch and return city suggestions', async () => {
+      const mockResults = [
+        {
+          id: 1,
+          name: 'Paris',
+          latitude: 48.8566,
+          longitude: 2.3522,
+          country: 'France',
+          population: 2161000,
+        },
+      ];
+
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ results: mockResults }),
+        } as Response)
+      ) as any;
+
+      const result = await getCitySuggestions('Paris');
+
+      expect(result).toEqual(mockResults);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return empty array on fetch error', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.reject(new Error('Network error'))
+      ) as any;
+
+      const result = await getCitySuggestions('Paris');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for non-ok response', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+        } as Response)
+      ) as any;
+
+      const result = await getCitySuggestions('Paris');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should trim whitespace from query', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ results: [] }),
+        } as Response)
+      ) as any;
+
+      await getCitySuggestions('  Paris  ');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('name=Paris')
+      );
+    });
+
+    it('should return empty array when results is undefined', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({}),
+        } as Response)
+      ) as any;
+
+      const result = await getCitySuggestions('Paris');
+
+      expect(result).toEqual([]);
+    });
   });
 
   describe('getCoordinates', () => {
@@ -41,7 +128,10 @@ describe('weather API', () => {
 
       const result = await getCoordinates('London');
 
-      expect(result).toEqual(mockResponse.results[0]);
+      expect(result).toEqual({
+        ...mockResponse.results[0],
+        originalName: 'London'
+      });
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('name=London')
       );
@@ -145,7 +235,10 @@ describe('weather API', () => {
 
       const result = await getCoordinates('London');
 
-      expect(result).toEqual(mockResponse.results[0]);
+      expect(result).toEqual({
+        ...mockResponse.results[0],
+        originalName: 'London'
+      });
       expect(result.country).toBe('United Kingdom');
     });
 
